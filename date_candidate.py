@@ -34,89 +34,6 @@ class DateCandidate(object):
         self.snippets.extend(other.snippets)
         self.score += other.score
 
-
-def get_date_candidates(notes, keywords):
-    '''
-    This method takes as input a list of ClinicNote objects and a list of Keyword objects. It then returns a list of DateCandidate objects representing dates that appear in the clinic notes correlated with the input keywords.
-    '''
-    candidates = []
-    pre_date_keywords = filter(lambda x: x.position=='PRE-DATE', keywords)
-    post_date_keywords = filter(lambda x: x.position=='POST-DATE', keywords)
-    LOG.debug("Here are the pre-date keywords: %s" % pre_date_keywords)
-    LOG.debug("Here are the post-date keywords: %s" % post_date_keywords)
-    
-    # Store the window sizes in a dictionary that maps (keyword text, position) tuples to window sizes
-    window_sizes = {}
-    for keyword in keywords:
-        window_sizes[(keyword.text.lower(), keyword.position)] = keyword.window
-    
-    if pre_date_keywords:
-#       pre_date_regex = re.compile('|'.join(['['+keyword[0].upper()+keyword[0]+']'+keyword[1:] for keyword in pre_date_keywords]))
-        pre_date_keywords = map(lambda w: ''.join(map(lambda x: '[' + x.upper() + x + ']', w.text)), pre_date_keywords)
-        pre_date_regex = re.compile('|'.join(pre_date_keywords))
-
-    if post_date_keywords:
-#       post_date_regex = re.compile('|'.join(['['+keyword[0].upper()+keyword[0]+']'+keyword[1:] for keyword in post_date_keywords]))
-        post_date_keywords = map(lambda w: ''.join(map(lambda x: '[' + x.upper() + x + ']', w.text)), post_date_keywords)
-        post_date_regex = re.compile('|'.join(post_date_keywords))
-    
-    for note in notes:
-        
-        if pre_date_keywords:
-            pre_date_matches = pre_date_regex.finditer(note.text)
-            for match in pre_date_matches:
-                LOG.debug("Found pre-date keyword match: %s" % match.group(0))
-                window_size = window_sizes[(match.group(0).lower(), 'PRE-DATE')]
-                
-                # Set the window beginning at the start of the match to pre_date_window_size characters or all remaining characters, whichever is less
-                window = note.text[match.start(0):(match.end(0)+window_size)]
-        
-                # Look for first date in window -- do not pass a period or the end of the text
-                snippet = re.split('[.]|[a-z],|dmitted|:.*:', window)[0]
-                LOG.debug("Looking for date in: %s" % snippet)
-
-                event_date_str = extract_date(snippet, 'first')
-                LOG.debug("Extracted: %s" % event_date_str)
-                if event_date_str:
-                    LOG.debug("Found date expression: %s" % event_date_str)
-                    event_dates = make_date(event_date_str)
-                
-                    # FIXME: Consider alternatives that keep coordinated dates together (or throw them out entirely)
-                    if event_dates:
-                        for event_date in event_dates:
-                            date_candidate = DateCandidate(event_date, [snippet])
-                            candidates.append(date_candidate)
-            
-            else:
-                LOG.debug("No date expression found")
-        
-        if post_date_keywords:      
-            LOG.debug("Looking for postdate matches")
-            post_date_matches = post_date_regex.finditer(note.text)
-            for match in post_date_matches:
-                LOG.debug("Found post-date keyword match: %s" % match.group(0))
-                window_size = window_sizes[(match.group(0).lower(), 'POST-DATE')]
-                
-                # Set the window to include the event expression and the prewindow_size characters before the event expression or all preceding characters, whichever is less
-                window = note.text[(match.start(0)-window_size):match.end(0)]
-        
-                # Look for the last date in the window -- do not pass a period
-                snippet = re.split('[.]|[a-z],|<%END%>|ischarge|dmitted.{20}', window)[-1]
-                LOG.debug("Looking for date in: %s" % snippet)
-            
-                event_date_str = extract_date(snippet, 'last')
-                LOG.debug("Extracted: %s" % event_date_str)        
-                if event_date_str:
-                    LOG.debug("Found date expression: %s" % event_date_str)
-                    event_dates = make_date(event_date_str)
-                                          
-                    if event_dates:
-                        for event_date in event_dates:
-                            date_candidate = DateCandidate(event_date, [snippet])
-                            candidates.append(date_candidate)
-
-    return candidates
-
     
 def rerank_candidates(candidates, filter, n):
     '''
@@ -127,8 +44,8 @@ def rerank_candidates(candidates, filter, n):
     score_candidates(candidates)
     remove_fuzzy_dates(candidates)
     LOG.debug("List is now length %s (after collapsing fuzzy dates)" % len(candidates))
-#   top_n_candidates(candidates, 3)
-#   filter_candidates(candidates, 0.6)
+#   top_n_candidates(candidates, n)
+#   filter_candidates(candidates, filter)
     filter_candidates_keep_top_n(candidates, filter, n)
     LOG.debug("List is now length %s (after filtering)" % len(candidates))
 

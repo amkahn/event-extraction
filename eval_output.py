@@ -5,15 +5,15 @@
 
 '''
 This script takes as input:
-1) a path to the output file, where each line corresponds with a patient and takes the format: MRN [tab] date1 [tab] score1 [tab] date2 [tab] score2 ...
-2) a path to the gold data file, where each line corresponds with a patient and takes the format: MRN[tab]gold_date_1[tab]gold_date_2 ...
+1) A path to the output file, where each line corresponds with a patient and takes the format: MRN [tab] date1 [tab] score1 [tab] date2 [tab] score2 ...
+2) A path to the gold data file, where each line corresponds with a patient and takes the format: MRN[tab]gold_date_1[tab]gold_date_2 ...
 
 It then calculates various evaluation metrics and prints them to standard out.
 '''
 
 from sys import argv
-from date_candidate import *
 import logging
+from date_candidate import *
 
 LOG = logging.getLogger(__name__)
 LOG.setLevel(logging.WARNING)
@@ -38,8 +38,8 @@ def main():
     LOG.debug("%s items in gold data dictionary" % len(gold_data_dict))
     
     print_results(gold_data_dict, output_dict)
-    print_output_comparison(gold_data_dict, output_dict)
-    print_output_not_in_top_n(gold_data_dict, output_dict, 5, 'lenient')
+#   print_output_comparison(gold_data_dict, output_dict)
+#   print_output_not_in_top_n(gold_data_dict, output_dict, 5, 'lenient')
 
 
 def get_output_dict(file):
@@ -101,7 +101,7 @@ def get_data_dict(file):
 
 def print_results(gold_data, sys_output):
     '''
-    This method takes as input a hash of MRN mapped to gold dates (Date objects), a hash of MRNs mapped to hashes of information about the patient returned by the system, and a string corresponding with the type of date being evaluated. It then prints various evaluation metrics to standard out.
+    This method takes as input a hash of MRN mapped to gold dates (Date objects) and a hash of MRNs mapped to lists of DateCandidate objects returned by the system. It then prints various evaluation metrics to standard out.
     '''
     strict_recall, lenient_recall = get_recall(gold_data, sys_output)
     strict_precision, lenient_precision = get_precision(gold_data, sys_output)
@@ -152,7 +152,7 @@ def print_output_comparison(gold_data, sys_output):
 
 def print_output_not_in_top_n(gold_data, sys_output, n, measure='strict'):
     '''
-    This method takes as input a hash of MRN mapped to gold dates (Date objects), a hash of MRNs mapped to hashes of information about the patient returned by the system, a string corresponding with the type of date being evaluated, an int n, and an optional measure (string 'strict' or 'lenient'; default is 'strict'). It then prints to standard out, for each patient for whom A correct date does not appear in the top n dates returned: MRN ground_truth extracted_by_sys
+    This method takes as input a hash of MRN mapped to gold dates (Date objects), a hash of MRNs mapped to lists of DateCandidate objects returned by the system, an int n, and an optional measure (string 'strict' or 'lenient'; default is 'strict'). It then prints to standard out, for each patient for whom A correct date does not appear in the top n dates returned: MRN ground_truth extracted_by_sys (where extracted_by_sys is all dates returned, including the top n).
     '''
     if measure not in ['strict', 'lenient']:
         LOG.warning("Measure must be 'strict' or 'lenient'; defaulting to 'strict'")
